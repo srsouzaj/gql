@@ -1,52 +1,21 @@
-import { gql, ApolloServer } from 'apollo-server';
-import { v4 as uuidv4 } from 'uuid';
+import 'reflect-metadata';
+import { ApolloServer } from 'apollo-server';
+import { buildSchema } from 'type-graphql';
+import { AppointmentsResolver } from './resolvers/appointments-resolver';
+import path from 'node:path';
 
-const typeDefs = gql`
-  type User {
-    id: String!
-    name: String!
-  }
+async function bootstrap() {
+  const schema = await buildSchema({
+    resolvers: [AppointmentsResolver],
+    emitSchemaFile: path.resolve(__dirname, 'schema.gql'),
+  });
 
-  type Query {
-    users: [User!]!
-  }
+  const server = new ApolloServer({
+    schema,
+  });
 
-  type Mutation {
-    createUser(name: String!): User!
-  }
-`;
-
-interface User {
-  id: string;
-  name: string;
+  const { url } = await server.listen();
+  console.log(`HTTP server running on ${url}`);
 }
 
-const users: User[] = [];
-
-const server = new ApolloServer({
-  typeDefs,
-  resolvers: {
-    Query: {
-      users: () => {
-        return users;
-      },
-    },
-
-    Mutation: {
-      createUser: (_, args) => {
-        const user = {
-          id: uuidv4(),
-          name: args.name,
-        };
-
-        users.push(user);
-
-        return user;
-      },
-    },
-  },
-});
-
-server.listen().then(({ url }) => {
-  console.log(`HTTP server running on ${url}`);
-});
+bootstrap();
